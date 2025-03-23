@@ -1,3 +1,55 @@
+# ========== Python ==========
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Pipenv / virtualenv
+venv/
+.env/
+.env.*
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# ========== OS Files ==========
 .DS_Store
+Thumbs.db
+
+# ========== VS Code / JetBrains IDE ==========
+.vscode/
+.idea/
+
+# ========== Datasets ==========
+# Raw ASL100 videos — DO NOT track
+/msasl/asl100/
+/data/videos/
+*.mp4
+*.avi
+
+# ========== MediaPipe Cache ==========
+mediapipe/modules/hand_landmark/*.tflite
+mediapipe/modules/hand_landmark/*.pbtxt
+mediapipe/models/
+
+# ========== Logs & Debug ==========
+*.log
+*.tmp
+*.bak
+
+# ========== Python Notebooks Output ==========
+*.out
+*.nbconvert.ipynb
+
+# ========== Landmarks ==========
+/data/landmarks/
+
+
+# ========== Other Optional ==========
+*.swp
+*.swo
