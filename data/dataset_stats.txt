@@ -1,0 +1,125 @@
+DATASET STATISTICS
+----------------------------------------
+Total clips: 4071
+Unique classes: 100
+
+Top 5 most frequent labels:
+label_text
+eat        56
+nice       56
+teacher    56
+finish     54
+fish       53
+
+Bottom 5 least frequent labels:
+label_text
+class    31
+sorry    31
+bad      30
+work     29
+hello     8
+
+Label distribution (full):
+label_text
+eat            56
+nice           56
+teacher        56
+finish         54
+fish           53
+mother         52
+happy          52
+sister         52
+school         51
+no             51
+cousin         50
+tired          50
+like           50
+milk           50
+orange         50
+deaf           50
+yes            49
+father         49
+friend         48
+white          48
+sit            47
+student        47
+table          46
+doctor         46
+family         46
+want           46
+book           45
+good           45
+learn          45
+again          45
+brother        44
+girl           44
+spring         44
+lost           43
+black          43
+boy            43
+what           43
+help           43
+water          43
+man            42
+here           42
+blue           41
+forget         41
+grandmother    41
+red            41
+now            41
+sick           41
+yellow         41
+how            41
+you            40
+nothing        40
+paper          40
+drink          39
+where          39
+night          39
+pencil         39
+beautiful      39
+sad            38
+understand     38
+write          38
+hurt           38
+day            38
+green          38
+please         38
+grandfather    38
+apple          37
+fine           37
+france         37
+brown          37
+hearing        36
+hungry         36
+wrong          36
+when           36
+sign           36
+english        36
+computer       36
+slow           35
+woman          35
+shoes          35
+walk           35
+nurse          35
+right          35
+name           34
+know           34
+who            34
+your           34
+same           33
+read           33
+play           33
+bathroom       33
+bus            32
+live           32
+pink           32
+dance          31
+draw           31
+class          31
+sorry          31
+bad            30
+work           29
+hello           8
+
+No duplicate filename entries found.
