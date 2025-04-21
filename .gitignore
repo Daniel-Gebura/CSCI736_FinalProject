@@ -49,6 +49,8 @@ mediapipe/models/
 # ========== Landmarks ==========
 /data/landmarks/
 
+# ========== Models ==========
+/saved_models
 
 # ========== Other Optional ==========
 *.swp
