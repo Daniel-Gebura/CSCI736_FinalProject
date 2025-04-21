@@ -3,6 +3,8 @@
 #
 # Handles loading landmark data from a zip archive,
 # preparing datasets, and providing dataloaders for training.
+# Now includes normalized landmarks relative to wrist, raw wrist coords,
+# and left/right hand marker.
 #
 # Author: Daniel Gebura
 ################################################################
@@ -17,14 +19,34 @@ import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 
+# --- Helper Function: Normalize Landmarks Relative to Wrist ---
+def normalize_landmarks(landmarks):
+    """
+    Normalize 21 hand landmarks relative to the wrist (landmark 0).
+
+    Args:
+        landmarks (list or np.ndarray): 63 elements (21 x 3D).
+
+    Returns:
+        np.ndarray: Flattened normalized landmarks (shape: (63,))
+    """
+    if len(landmarks) != 63:
+        return np.zeros(63, dtype=np.float32)  # Handle invalid input safely
+    landmarks = np.array(landmarks).reshape(21, 3)  # Reshape into (21, 3)
+    wrist = landmarks[0]  # Wrist is landmark 0
+    landmarks -= wrist  # Translate landmarks relative to wrist
+    max_distance = np.max(np.linalg.norm(landmarks, axis=1)) + 1e-8  # Max distance for normalization
+    return (landmarks / max_distance).flatten()  # Flatten back to (63,)
+
 # --- Data Loading Function ---
 def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/"):
     """
-    Loads landmark data and labels from .npy files inside a zip archive.
+    Loads landmark data and labels from a zipped folder.
+    Processes each frame to add normalized landmarks, raw wrist 3D, and left/right markers.
 
     Args:
-        zip_path (str): Path to the ZIP archive.
-        landmarks_folder_in_zip (str): Subfolder inside the ZIP containing landmarks.
+        zip_path (str): Path to .zip archive.
+        landmarks_folder_in_zip (str): Folder inside ZIP with landmarks.
 
     Returns:
         tuple: (list of landmarks arrays, list of labels, label_to_index dict, index_to_label dict, list of filenames)
@@ -40,7 +62,7 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
     unique_labels = set()
     processed_file_count = 0
 
-    # --- First pass: Scan file list to build label dictionary ---
+    # --- First Pass: Identify Labels ---
     print("Scanning ZIP for labels...")
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -51,7 +73,7 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
             ]
 
             if not npy_files:
-                raise ValueError(f"No .npy files found in {landmarks_folder_in_zip}")
+                raise ValueError(f"No .npy files found inside {landmarks_folder_in_zip}")
 
             print(f"Found {len(npy_files)} .npy files.")
 
@@ -74,17 +96,16 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
     except zipfile.BadZipFile:
         raise zipfile.BadZipFile(f"Invalid ZIP file: {zip_path}")
 
-    # --- Create label mapping dictionaries ---
+    # --- Create Label Maps ---
     sorted_labels = sorted(list(unique_labels))
     label_to_index = {label: i for i, label in enumerate(sorted_labels)}
     index_to_label = {i: label for i, label in enumerate(sorted_labels)}
     print(f"Generated label mappings for {len(label_to_index)} classes.")
 
-    # --- Second pass: Load and process landmarks ---
+    # --- Second Pass: Load and Process Data ---
     all_labels_indexed = []
     loaded_filenames = []
     skipped_files = 0
-    TARGET_FEATURE_DIM = 126  # 2 hands × 21 landmarks × 3 coordinates
 
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -105,25 +126,50 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
                     with zip_ref.open(filename) as npy_file:
                         content = io.BytesIO(npy_file.read())
                         landmarks = np.load(content)
-                        processed = None
 
-                        # Handle different input formats
-                        if len(landmarks.shape) == 4 and landmarks.shape[1:] == (2, 21, 3):
+                        if landmarks.ndim == 4 and landmarks.shape[1:] == (2, 21, 3):
                             num_frames = landmarks.shape[0]
-                            processed = landmarks.reshape(num_frames, -1)
-                        elif len(landmarks.shape) == 2 and landmarks.shape[1] == 63:
-                            num_frames = landmarks.shape[0]
-                            zeros = np.zeros((num_frames, 63))
-                            processed = np.concatenate((landmarks, zeros), axis=1)
-                        elif len(landmarks.shape) == 2 and landmarks.shape[1] == 126:
-                            processed = landmarks
+                            feature_sequence = []
+
+                            for frame_idx in range(num_frames):
+                                frame = landmarks[frame_idx]
+
+                                # Split into left and right hands
+                                left_hand = frame[0].flatten()
+                                right_hand = frame[1].flatten()
+
+                                # Normalize landmarks
+                                left_norm = normalize_landmarks(left_hand)
+                                right_norm = normalize_landmarks(right_hand)
+
+                                # Raw wrist coords
+                                left_wrist = frame[0][0]  # (x, y, z) for left hand wrist
+                                right_wrist = frame[1][0] # (x, y, z) for right hand wrist
+
+                                # Marker (0 = left, 1 = right)
+                                left_marker = np.array([0.0], dtype=np.float32)
+                                right_marker = np.array([1.0], dtype=np.float32)
+
+                                # Concatenate features into one long vector
+                                features = np.concatenate([
+                                    left_norm,       # Normalized left hand
+                                    right_norm,      # Normalized right hand
+                                    left_wrist,      # Raw left wrist
+                                    right_wrist,     # Raw right wrist
+                                    left_marker,     # Left marker
+                                    right_marker     # Right marker
+                                ])  # Final feature size: (63+63+3+3+1+1) = 132
+
+                                feature_sequence.append(features)
+
+                            feature_sequence = np.stack(feature_sequence)  # Stack frames
+                            all_landmarks.append(feature_sequence)
+                            all_labels_indexed.append(label_idx)
+                            loaded_filenames.append(filename)
+
                         else:
                             skipped_files += 1
                             continue
-
-                        all_landmarks.append(processed)
-                        all_labels_indexed.append(label_idx)
-                        loaded_filenames.append(filename)
 
                 except Exception as e:
                     print(f"Error loading {filename}: {e}")
