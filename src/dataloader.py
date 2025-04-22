@@ -158,7 +158,7 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
                                     right_wrist,     # Raw right wrist
                                     left_marker,     # Left marker
                                     right_marker     # Right marker
-                                ])  # Final feature size: (63+63+3+3+1+1) = 132
+                                ])  # Final feature size: (63+63+3+3+1+1) = 134
 
                                 feature_sequence.append(features)
 
