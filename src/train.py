@@ -25,7 +25,6 @@ from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
 from dataloader import load_landmark_data_from_zip, SignLandmarkDataset, collate_fn
-#from model import SignGRUClassifier_LayerNorm_MLP
 from model_new import SignGRUClassifier_LayerNorm_MLP
 
 # ---------------- Configuration Constants ----------------
@@ -41,7 +40,7 @@ MODEL_WEIGHTS_PATH = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_best.pth')
 MODEL_INFO_PATH = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_info.json')
 
 # Hyperparameters
-INPUT_SIZE = 134            # Updated input size to match dataloader output (63+63+3+3+1+1)
+INPUT_SIZE = 132            # Updated input size to match dataloader output (63+63+3+3+1+1)
 HIDDEN_SIZE = 128           # GRU hidden size
 NUM_LAYERS = 2              # GRU layers
 DROPOUT = 0.4               # Dropout probability

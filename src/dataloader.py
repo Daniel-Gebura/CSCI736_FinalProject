@@ -3,8 +3,10 @@
 #
 # Handles loading landmark data from a zip archive,
 # preparing datasets, and providing dataloaders for training.
-# Now includes normalized landmarks relative to wrist, raw wrist coords,
-# and left/right hand marker.
+# Features per frame include:
+#   - Normalized landmarks for each hand (relative to wrist)
+#   - Raw wrist coordinates
+# Padding duplicates the last valid frame.
 #
 # Author: Daniel Gebura
 ################################################################
@@ -42,7 +44,8 @@ def normalize_landmarks(landmarks):
 def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/"):
     """
     Loads landmark data and labels from a zipped folder.
-    Processes each frame to add normalized landmarks, raw wrist 3D, and left/right markers.
+    Processes each frame to include normalized landmarks and raw wrist coordinates.
+    Padding duplicates last frame.
 
     Args:
         zip_path (str): Path to .zip archive.
@@ -127,6 +130,7 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
                         content = io.BytesIO(npy_file.read())
                         landmarks = np.load(content)
 
+                        # Check for expected shape: (frames, 2, 21, 3)
                         if landmarks.ndim == 4 and landmarks.shape[1:] == (2, 21, 3):
                             num_frames = landmarks.shape[0]
                             feature_sequence = []
@@ -134,35 +138,29 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
                             for frame_idx in range(num_frames):
                                 frame = landmarks[frame_idx]
 
-                                # Split into left and right hands
+                                # Flatten both hands
                                 left_hand = frame[0].flatten()
                                 right_hand = frame[1].flatten()
 
-                                # Normalize landmarks
+                                # Normalize each hand
                                 left_norm = normalize_landmarks(left_hand)
                                 right_norm = normalize_landmarks(right_hand)
 
-                                # Raw wrist coords
-                                left_wrist = frame[0][0]  # (x, y, z) for left hand wrist
-                                right_wrist = frame[1][0] # (x, y, z) for right hand wrist
+                                # Extract raw wrist positions
+                                left_wrist = frame[0][0]  # (x, y, z)
+                                right_wrist = frame[1][0]  # (x, y, z)
 
-                                # Marker (0 = left, 1 = right)
-                                left_marker = np.array([0.0], dtype=np.float32)
-                                right_marker = np.array([1.0], dtype=np.float32)
-
-                                # Concatenate features into one long vector
+                                # Concatenate features
                                 features = np.concatenate([
-                                    left_norm,       # Normalized left hand
-                                    right_norm,      # Normalized right hand
-                                    left_wrist,      # Raw left wrist
-                                    right_wrist,     # Raw right wrist
-                                    left_marker,     # Left marker
-                                    right_marker     # Right marker
-                                ])  # Final feature size: (63+63+3+3+1+1) = 134
+                                    left_norm,       # 63
+                                    right_norm,      # 63
+                                    left_wrist,      # 3
+                                    right_wrist      # 3
+                                ])  # → Final size: 132
 
                                 feature_sequence.append(features)
 
-                            feature_sequence = np.stack(feature_sequence)  # Stack frames
+                            feature_sequence = np.stack(feature_sequence)
                             all_landmarks.append(feature_sequence)
                             all_labels_indexed.append(label_idx)
                             loaded_filenames.append(filename)
@@ -186,9 +184,10 @@ def load_landmark_data_from_zip(zip_path, landmarks_folder_in_zip="../landmarks/
 # --- Dataset Class ---
 class SignLandmarkDataset(Dataset):
     """
-    PyTorch Dataset for landmark sequences.
+    PyTorch Dataset for variable-length landmark sequences.
     """
     def __init__(self, landmarks_list, labels_list):
+        # Convert each frame-sequence to a torch tensor of dtype float32
         self.landmarks = [torch.tensor(seq, dtype=torch.float32) for seq in landmarks_list]
         self.labels = torch.tensor(labels_list, dtype=torch.long)
 
@@ -201,16 +200,35 @@ class SignLandmarkDataset(Dataset):
 # --- Collate Function ---
 def collate_fn(batch):
     """
-    Pads sequences in a batch to the same length.
+    Collate function that duplicates the last frame for padding.
 
     Args:
-        batch (list): List of (sequence, label) tuples.
+        batch (list): List of (sequence, label) pairs.
 
     Returns:
         tuple: (padded_sequences, labels, lengths)
+            - padded_sequences: Tensor of shape (batch_size, max_len, feature_dim)
+            - labels: Tensor of shape (batch_size)
+            - lengths: Tensor of original sequence lengths
     """
     sequences, labels = zip(*batch)
-    lengths = torch.tensor([len(seq) for seq in sequences], dtype=torch.long)
-    padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0.0)
-    labels = torch.stack(labels, 0)
+
+    # Compute max length in batch
+    lengths = torch.tensor([seq.shape[0] for seq in sequences], dtype=torch.long)
+    max_len = max(lengths)
+
+    padded_sequences = []
+    for seq in sequences:
+        pad_len = max_len - seq.shape[0]
+        if pad_len > 0:
+            last_frame = seq[-1:]  # shape (1, feature_dim)
+            padding = last_frame.repeat(pad_len, 1)  # repeat last frame
+            padded_seq = torch.cat([seq, padding], dim=0)
+        else:
+            padded_seq = seq
+        padded_sequences.append(padded_seq)
+
+    padded_sequences = torch.stack(padded_sequences, dim=0)  # shape (batch_size, max_len, feature_dim)
+    labels = torch.stack(labels, dim=0)  # shape (batch_size)
+
     return padded_sequences, labels, lengths

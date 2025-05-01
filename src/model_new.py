@@ -41,21 +41,24 @@ class SignGRUClassifier_LayerNorm_MLP(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # MLP head: gru_output_features -> hidden_size -> num_classes
-        # Intermediate layer size is kept related to the base hidden_size for consistency
         self.mlp = nn.Sequential(
-            nn.Linear(self.gru_output_features, hidden_size), # Input adjusted for bidirectionality
+            nn.Linear(self.gru_output_features, hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_size, num_classes) # Output layer
+            nn.Linear(hidden_size, num_classes)
         )
-        print(f"Initialized SignGRUClassifier_LayerNorm_MLP:")
-        print(f"  Input Size: {input_size}")
-        print(f"  Hidden Size: {hidden_size} (per direction)")
-        print(f"  Num Layers: {num_layers}")
-        print(f"  Num Classes: {num_classes}")
-        print(f"  Dropout: {dropout}")
-        print(f"  Bidirectional: {bidirectional}")
-        print(f"  GRU Output Features (for LayerNorm/MLP input): {self.gru_output_features}")
+
+
+        print("\n[Model Initialized: SignGRUClassifier_LayerNorm_MLP]")
+        print(f"  • Input Size             : {input_size}")
+        print(f"  • Hidden Size            : {hidden_size} (per GRU direction)")
+        print(f"  • GRU Layers             : {num_layers}")
+        print(f"  • Bidirectional GRU      : {bidirectional}")
+        print(f"  • GRU Output Features    : {self.gru_output_features} (used for LayerNorm/MLP)")
+        print(f"  • MLP Architecture       : {self.gru_output_features} → {hidden_size} → {hidden_size // 2} → {num_classes}")
+        print(f"  • Dropout Rate           : {dropout}")
+        print(f"  • Num Output Classes     : {num_classes}\n")
+
 
 
     def forward(self, x, lengths=None):
