@@ -25,7 +25,8 @@ from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
 from dataloader import load_landmark_data_from_zip, SignLandmarkDataset, collate_fn
-from model import SignGRUClassifier_LayerNorm_MLP
+#from model import SignGRUClassifier_LayerNorm_MLP
+from model_new import SignGRUClassifier_LayerNorm_MLP
 
 # ---------------- Configuration Constants ----------------
 
@@ -48,6 +49,7 @@ BATCH_SIZE = 32             # Batch size
 NUM_EPOCHS = 50             # Number of epochs
 LEARNING_RATE = 0.001       # Learning rate
 VALIDATION_SPLIT = 0.2      # Fraction of data for validation
+WEIGHT_DECAY = 1e-5
 
 # Seeding
 SEED = 42                  # Set your seed value here for reproducibility
@@ -205,8 +207,8 @@ def plot_training_curves(train_losses, val_losses, train_accs, val_accs):
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig("training_curves.png")
-    print("Training curves saved as training_curves.png")
+    plt.savefig("training_curvesbi50.png")
+    print("Training curves saved as training_curvesbi50.png")
 
 # --- Main Execution Block ---
 if __name__ == "__main__":
@@ -252,7 +254,7 @@ if __name__ == "__main__":
                 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
                 model = SignGRUClassifier_LayerNorm_MLP(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, NUM_CLASSES, dropout=DROPOUT).to(device)
                 criterion = nn.CrossEntropyLoss()
-                optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+                optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
                 # Train model
                 train_losses, val_losses, train_accs, val_accs = train_model(
