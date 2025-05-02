@@ -50,7 +50,8 @@ mediapipe/models/
 /data/landmarks/
 
 # ========== Models ==========
-/saved_models
+/saved_models/
+ablation/experiments/saved_models
 
 # ========== Other Optional ==========
 *.swp
