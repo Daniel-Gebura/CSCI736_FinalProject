@@ -42,6 +42,12 @@ from models import (
     SignGRUClassifierAttention
 )
 
+MODEL_SAVE_DIR = 'ab_saved_models'
+MODEL_NAME = 'sign_gru_attention'
+
+# Model Save Paths
+MODEL_WEIGHTS_PATH = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_best.pth')
+MODEL_INFO_PATH = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_info.json')
 # ---------------------------------------------------------------
 # Main Training Execution Function
 # ---------------------------------------------------------------
@@ -146,6 +152,8 @@ def train(model_class, model_name):
 # Entry Point for All Ablation Runs
 # ---------------------------------------------------------------
 if __name__ == "__main__":
+    # Ensure model save directory exists
+    os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
     """
     Entry point to train all model variants as part of an ablation study.
     Each model is trained, logged, and evaluated independently.
