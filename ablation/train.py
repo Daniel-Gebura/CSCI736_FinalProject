@@ -9,6 +9,8 @@
 #   - Bidirectional GRU + MLP
 #   - Bidirectional GRU + LayerNorm + MLP
 #   - Bidirectional GRU + LayerNorm + MLP + Attention
+#   - Transformer
+#   - TCN
 #
 # Handles:
 #   - Setting global seed
@@ -39,15 +41,13 @@ from models import (
     SignGRUClassifier_LayerNorm,
     SignGRUClassifier_MLP,
     SignGRUClassifier_LayerNorm_MLP,
-    SignGRUClassifierAttention
+    SignGRUClassifierAttention,
+    # --- ADDED ---
+    SignTransformerClassifier,
+    SignTCNClassifier
+    # -------------
 )
 
-MODEL_SAVE_DIR = 'ab_saved_models'
-MODEL_NAME = 'sign_gru_attention'
-
-# Model Save Paths
-MODEL_WEIGHTS_PATH = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_best.pth')
-MODEL_INFO_PATH = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_info.json')
 # ---------------------------------------------------------------
 # Main Training Execution Function
 # ---------------------------------------------------------------
@@ -110,13 +110,19 @@ def train(model_class, model_name):
     )
 
     # Initialize model with given architecture and move to device
-    model = model_class(
-        input_size=CONFIG['input_size'],
-        hidden_size=CONFIG['hidden_size'],
-        num_layers=CONFIG['num_layers'],
-        num_classes=len(label2idx),
-        dropout=CONFIG['dropout']
-    ).to(device)
+    # Use a try-except block for potential init errors like hidden_size % nhead
+    try:
+        model = model_class(
+            input_size=CONFIG['input_size'],
+            hidden_size=CONFIG['hidden_size'],
+            num_layers=CONFIG['num_layers'],
+            num_classes=len(label2idx),
+            dropout=CONFIG['dropout']
+        ).to(device)
+    except Exception as e:
+        print(f"\nError initializing model {model_name}: {e}")
+        traceback.print_exc()
+        return # Skip training this model variant
 
     # Define optimizer and loss function
     optimizer = optim.Adam(model.parameters(), lr=CONFIG['learning_rate'], weight_decay=CONFIG['weight_decay'])
@@ -135,7 +141,10 @@ def train(model_class, model_name):
             device=device,
             save_dir=CONFIG['model_save_dir'],
             label2idx=label2idx,
-            idx2label=idx2label
+            idx2label=idx2label,
+            input_size_config=CONFIG['input_size'],
+            # --- ADDED --- Pass early stopping patience from config
+            early_stopping_patience=CONFIG['early_stopping_patience']
         )
 
         # Save metrics to results.csv
@@ -145,27 +154,32 @@ def train(model_class, model_name):
         plot_training_curves(logs['train_losses'], logs['val_losses'], logs['train_accs'], logs['val_accs'], model_name)
 
     except Exception as e:
-        print(f"\nError during training: {e}")
+        print(f"\nError during training for model {model_name}: {e}")
         traceback.print_exc()
 
 # ---------------------------------------------------------------
 # Entry Point for All Ablation Runs
 # ---------------------------------------------------------------
 if __name__ == "__main__":
-    # Ensure model save directory exists
-    os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
     """
     Entry point to train all model variants as part of an ablation study.
     Each model is trained, logged, and evaluated independently.
     """
     model_variants = [
-        ("gru_base", SignGRUClassifier),
-        ("gru_bidirectional", SignBiGRUClassifier),
-        ("gru_layernorm", SignGRUClassifier_LayerNorm),
-        ("gru_mlp", SignGRUClassifier_MLP),
-        ("gru_layernorm_mlp", SignGRUClassifier_LayerNorm_MLP),
-        ("gru_attention", SignGRUClassifierAttention)
+        # ("gru_base", SignGRUClassifier),
+        # ("gru_bidirectional", SignBiGRUClassifier),
+        # ("gru_layernorm", SignGRUClassifier_LayerNorm),
+        # ("gru_mlp", SignGRUClassifier_MLP),
+        # ("gru_layernorm_mlp", SignGRUClassifier_LayerNorm_MLP),
+        # ("gru_attention", SignGRUClassifierAttention),
+        # --- ADDED ---
+        ("transformer", SignTransformerClassifier),
+        # ("tcn", SignTCNClassifier)
+        # -------------
     ]
+
+    # Ensure model save directory exists from config
+    os.makedirs(CONFIG['model_save_dir'], exist_ok=True)
 
     for model_name, model_class in model_variants:
         print(f"\n\n========== Running Model: {model_name} ==========")
