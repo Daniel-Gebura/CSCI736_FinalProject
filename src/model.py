@@ -6,7 +6,6 @@
 #
 # Author: Daniel Gebura
 ################################################################
-
 import torch
 import torch.nn as nn
 
@@ -65,7 +64,7 @@ class SignGRUClassifier(nn.Module):
         out = self.fc(out)  # Shape: (batch_size, num_classes)
 
         return out
-    
+
 # ---------------------------------------------------------------------
 
 # --- GRU Classifier + Layer Normalization ---

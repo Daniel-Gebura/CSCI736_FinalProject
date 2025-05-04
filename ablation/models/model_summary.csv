@@ -1,0 +1,7 @@
+Model Name,GRU Layers,Bidirectional,LayerNorm,MLP Head,Attention,Dropout Used In,Output Layer Type
+SignGRUClassifier,Yes,No,No,No,No,After GRU,Linear
+SignBiGRUClassifier,Yes,Yes,No,No,No,After GRU,Linear
+SignGRUClassifier_LayerNorm,Yes,Yes,Yes,No,No,After LayerNorm,Linear
+SignGRUClassifier_MLP,Yes,Yes,No,Linear - ReLU - Dropout - Linear - ReLU - Dropout - Linear,No,After GRU, in MLP
+SignGRUClassifier_LayerNorm_MLP,Yes,Yes,Yes,Linear - ReLU - Dropout - Linear - ReLU - Dropout - Linear,No,After LayerNorm, in MLP
+SignGRUClassifierAttention,Yes,Yes,Yes,Linear - ReLU - Dropout - Linear - ReLU - Dropout - Linear,Yes,After LayerNorm, in MLP
