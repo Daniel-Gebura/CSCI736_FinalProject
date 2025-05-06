@@ -61,6 +61,7 @@ class SignGRUClassifierAttention(nn.Module):
         self.attention_fc = nn.Linear(self.gru_output_features, 1)
 
         # --- Regularization ---
+        self.layer_norm = nn.LayerNorm(self.output_dim)
         self.dropout = nn.Dropout(dropout)
 
         # --- MLP Classifier Head ---
@@ -116,7 +117,8 @@ class SignGRUClassifierAttention(nn.Module):
         context_vector = torch.sum(gru_out * attn_weights.unsqueeze(-1), dim=1)
 
         # --- Step 3: Normalize and Dropout ---
-        dropped = self.dropout(context_vector)
+        norm = self.layer_norm(context_vector)
+        dropped = self.dropout(norm)
 
         # --- Step 4: MLP Classification ---
         logits = self.mlp(dropped)  # Final shape: (batch, num_classes)
