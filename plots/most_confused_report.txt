@@ -1,0 +1,12 @@
+Top Most Confused Class Pairs (True -> Predicted):
+
+school                         -> nice                           | Count: 43
+brother                        -> sister                         | Count: 42
+paper                          -> nice                           | Count: 31
+doctor                         -> nurse                          | Count: 27
+fine                           -> man                            | Count: 24
+father                         -> water                          | Count: 21
+night                          -> english                        | Count: 16
+right                          -> sister                         | Count: 14
+slow                           -> night                          | Count: 13
+pink                           -> red                            | Count: 12
