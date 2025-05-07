@@ -15,26 +15,18 @@ CONFIG = {
     # ---------------- Model Input -------------------
     'input_size': 132,  # Set based on dataset (63 + 63 + 3 + 3)
 
-    # ---------------- Architecture ------------------
+    # ---------------- GRU Architecture ------------------
     'hidden_size': 128,
     'num_layers': 2,
     'dropout': 0.5,
 
-    # Transformer specific
-    'nhead': 4,
-    'dim_feedforward': 512,
-    'max_len': 500,
-
-    # TCN specific
-    'tcn_kernel_size': 3,
-
     # ---------------- Training Hyperparameters ----------------
     'batch_size': 32,
-    'num_epochs': 100,
+    'num_epochs': 200,
     'learning_rate': 1e-3,
     'weight_decay': 1e-5,
     'validation_split': 0.2,
-    'early_stopping_patience': 25,
+    'early_stopping_patience': 50,
 
     # ---------------- File Paths ----------------
     'zip_path': '../data/landmarks.zip',

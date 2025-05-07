@@ -109,6 +109,20 @@ class SignTransformerClassifier(nn.Module):
         # Transformer doesn't have 'bidirectional' in the same sense as GRU
         self.bidirectional = False # Set to False or None for compatibility
 
+        # --- Debug Info ---
+        print(f"""
+        [Initialized: SignTransformerClassifier]
+        • Input Size               : {input_size}
+        • Hidden Size (d_model)    : {hidden_size}
+        • Num Encoder Layers       : {num_layers}
+        • Num Attention Heads      : {nhead}
+        • Feedforward Dim          : {dim_feedforward}
+        • Dropout Rate             : {dropout}
+        • Max Sequence Length      : {max_len}
+        • MLP Classifier Head      : {hidden_size} → {hidden_size // 2} → {num_classes}
+        • Num Output Classes       : {num_classes}
+        """)
+
 
     def forward(self, x, lengths=None):
         # x shape: (batch_size, seq_len, input_size) -> Should be on target device (e.g., cuda)

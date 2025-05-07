@@ -10,7 +10,7 @@ import time # Added for potential FPS calculation or timing
 # --- Import necessary components from your files ---
 try:
     from dataloader import normalize_landmarks
-    from models import (SignGRUClassifierAttention)
+    from models.transformer_classifier import SignTransformerClassifier
 
 except ImportError as e:
     print(f"Error importing required modules: {e}")
@@ -103,7 +103,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
 # Instantiate the imported model class
-model = SignGRUClassifierAttention(
+model = SignTransformerClassifier(
     input_size=INPUT_SIZE,
     hidden_size=HIDDEN_SIZE,
     num_layers=NUM_LAYERS,

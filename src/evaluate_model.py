@@ -24,8 +24,8 @@ from models.gru_classifier import SignGRUClassifierAttention
 # Paths
 ZIP_FILE_PATH = '../data/landmarks.zip'
 LANDMARKS_FOLDER_IN_ZIP = 'landmarks/'
-MODEL_SAVE_PATH = '../saved_models/sign_gru_classifier_best.pth'
-MODEL_INFO_PATH = '../saved_models/sign_gru_classifier_info.json'
+MODEL_SAVE_PATH = '../saved_models/gru_attention_best.pth'
+MODEL_INFO_PATH = '../saved_models/gru_attention_info.json'
 
 # Output
 HEATMAP_PATH = 'confusion_matrix_heatmap.png'

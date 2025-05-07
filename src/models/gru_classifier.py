@@ -16,8 +16,9 @@ class SignGRUClassifierAttention(nn.Module):
     This model uses:
       - A configurable GRU (optionally bidirectional)
       - A self-attention mechanism over GRU outputs
+      - Layer normalization for regularization
       - Dropout for regularization
-      - A multi-layer MLP classifier head
+      - A fully connected classification head
 
     Input shape: (batch_size, sequence_length, input_size)
     Output shape: (batch_size, num_classes)
@@ -61,7 +62,7 @@ class SignGRUClassifierAttention(nn.Module):
         self.attention_fc = nn.Linear(self.gru_output_features, 1)
 
         # --- Regularization ---
-        self.layer_norm = nn.LayerNorm(self.output_dim)
+        self.layer_norm = nn.LayerNorm(self.gru_output_features)
         self.dropout = nn.Dropout(dropout)
 
         # --- MLP Classifier Head ---
@@ -82,7 +83,6 @@ class SignGRUClassifierAttention(nn.Module):
         print(f"  • GRU Layers             : {num_layers}")
         print(f"  • Bidirectional GRU      : {bidirectional}")
         print(f"  • GRU Output Features    : {self.gru_output_features} (used for attention)")
-        print(f"  • MLP Architecture       : {self.gru_output_features} → {hidden_size} → {hidden_size // 2} → {num_classes}")
         print(f"  • Dropout Rate           : {dropout}")
         print(f"  • Num Output Classes     : {num_classes}\n")
 

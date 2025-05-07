@@ -1,8 +1,9 @@
 ################################################################
 # train.py
 #
-# Trains GRU, Transformer, and TCN classifiers for gesture
+# Trains GRU and Transformer classifiers for gesture
 # classification using shared training pipeline.
+# Uses architecture-specific configuration from CONFIG.
 #
 # Author: Daniel Gebura
 ################################################################
@@ -19,12 +20,9 @@ from config import CONFIG
 from dataloader import load_landmark_data_from_zip, SignLandmarkDataset, collate_fn
 from utils.metrics import set_seed, evaluate_model
 from utils.visualization import plot_training_curves
-from utils.experiment_logger import log_experiment_result
 
 # --- Models ---
 from models.gru_classifier import SignGRUClassifierAttention
-from models.transformer_classifier import SignTransformerClassifier
-from models.tcn_classifier import SignTCNClassifier
 
 # ---------------------------------------------------------------
 # Training Routine for a Given Model Variant
@@ -37,13 +35,17 @@ def train(model_class, model_name):
         model_class (nn.Module): The model class to instantiate.
         model_name (str): Identifier for logs and saved files.
     """
+    # Set global seed for reproducibility
     set_seed(CONFIG['seed'])
 
+    # Select device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"\nUsing device: {device}")
 
+    # Create model save directory if it doesn't exist
     os.makedirs(CONFIG['model_save_dir'], exist_ok=True)
 
+    # Load landmark sequence data from zip
     all_landmarks, all_labels, label2idx, idx2label, _ = load_landmark_data_from_zip(
         CONFIG['zip_path'], CONFIG['landmarks_folder'])
 
@@ -51,7 +53,7 @@ def train(model_class, model_name):
         print("Error: No data found.")
         return
 
-    # Stratified split
+    # Stratified train-validation split
     train_idx, val_idx = train_test_split(
         range(len(all_labels)),
         test_size=CONFIG['validation_split'],
@@ -59,11 +61,13 @@ def train(model_class, model_name):
         random_state=CONFIG['seed']
     )
 
+    # Subset train/val data
     train_data = [all_landmarks[i] for i in train_idx]
     train_labels = [all_labels[i] for i in train_idx]
     val_data = [all_landmarks[i] for i in val_idx]
     val_labels = [all_labels[i] for i in val_idx]
 
+    # Create PyTorch dataloaders
     train_loader = torch.utils.data.DataLoader(
         SignLandmarkDataset(train_data, train_labels),
         batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=collate_fn)
@@ -73,24 +77,17 @@ def train(model_class, model_name):
         batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=collate_fn)
 
     try:
-        # Custom args for specific models
+        # Base model arguments
         model_kwargs = {
             'input_size': CONFIG['input_size'],
+            'num_classes': len(label2idx),
             'hidden_size': CONFIG['hidden_size'],
             'num_layers': CONFIG['num_layers'],
-            'num_classes': len(label2idx),
             'dropout': CONFIG['dropout']
+
         }
 
-        if model_name == 'transformer':
-            model_kwargs.update({
-                'nhead': CONFIG['nhead'],
-                'dim_feedforward': CONFIG['dim_feedforward'],
-                'max_len': CONFIG['max_len']
-            })
-        elif model_name == 'tcn':
-            model_kwargs['kernel_size'] = CONFIG['tcn_kernel_size']
-
+        # Instantiate model
         model = model_class(**model_kwargs).to(device)
 
     except Exception as e:
@@ -98,10 +95,12 @@ def train(model_class, model_name):
         traceback.print_exc()
         return
 
+    # Setup optimizer and loss
     optimizer = optim.Adam(model.parameters(), lr=CONFIG['learning_rate'], weight_decay=CONFIG['weight_decay'])
     criterion = nn.CrossEntropyLoss()
 
     try:
+        # Train and evaluate
         best_val_acc, logs = evaluate_model(
             model=model,
             model_name=model_name,
@@ -118,8 +117,7 @@ def train(model_class, model_name):
             early_stopping_patience=CONFIG['early_stopping_patience']
         )
 
-        log_experiment_result(model_name, best_val_acc, logs, CONFIG)
-
+        # Plot the training curves
         plot_training_curves(
             logs['train_losses'], logs['val_losses'],
             logs['train_accs'], logs['val_accs'], model_name)
@@ -134,8 +132,6 @@ def train(model_class, model_name):
 if __name__ == "__main__":
     model_variants = [
         ("gru_attention", SignGRUClassifierAttention),
-        ("transformer", SignTransformerClassifier),
-        ("tcn", SignTCNClassifier)
     ]
 
     for model_name, model_class in model_variants:
