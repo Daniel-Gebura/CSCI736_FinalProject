@@ -149,4 +149,6 @@ This demo script:
 * Displays the predicted ASL word and confidence on screen
 * Supports clearing the prediction buffer (`press 'c'`) or quitting (`press 'q'`)
 
+As an example, `press 'c'` to clear the buffer and present a gesture from the dataset, such as `tired` or `teacher` (Instructions for performing these gestures can be found online). 
+
 > Tip: Ensure your webcam is active and `MediaPipe`, `torch`, and `OpenCV` are correctly installed.
