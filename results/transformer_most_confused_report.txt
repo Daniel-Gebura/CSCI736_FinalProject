@@ -1,0 +1,12 @@
+Top Most Confused Class Pairs (True -> Predicted):
+
+woman                          -> fine                           | Count: 12
+school                         -> nice                           | Count: 10
+pencil                         -> write                          | Count: 8
+understand                     -> red                            | Count: 6
+school                         -> paper                          | Count: 6
+nice                           -> school                         | Count: 6
+same                           -> shoes                          | Count: 5
+grandfather                    -> grandmother                    | Count: 5
+grandfather                    -> father                         | Count: 5
+brother                        -> sister                         | Count: 5

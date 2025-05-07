@@ -2,6 +2,7 @@
 # utils/metrics.py
 #
 # Contains training loop (`evaluate_model`) and seed control function.
+# v3: Added early stopping logic.
 #
 # Author: Daniel Gebura
 ################################################################
@@ -31,9 +32,9 @@ def set_seed(seed):
 
 
 def evaluate_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs, device,
-                   save_dir, label2idx, idx2label):
+                   save_dir, label2idx, idx2label, input_size_config, early_stopping_patience):
     """
-    Full training and validation loop with best model checkpointing.
+    Full training and validation loop with best model checkpointing and early stopping.
 
     Args:
         model (nn.Module): Model instance to train.
@@ -47,12 +48,15 @@ def evaluate_model(model, model_name, train_loader, val_loader, criterion, optim
         save_dir (str): Directory to store model files.
         label2idx (dict): Class label to index mapping.
         idx2label (dict): Index to class label mapping.
+        input_size_config (int): Input size from the main config.
+        early_stopping_patience (int): Number of epochs to wait for improvement before stopping.
 
     Returns:
         float: Best validation accuracy achieved.
         dict: Logs of training losses/accuracies per epoch.
     """
     best_val_acc = 0.0
+    epochs_no_improve = 0  # --- ADDED --- Counter for early stopping
     logs = {'train_losses': [], 'val_losses': [], 'train_accs': [], 'val_accs': []}
 
     model_path = os.path.join(save_dir, f"{model_name}_best.pth")
@@ -62,7 +66,7 @@ def evaluate_model(model, model_name, train_loader, val_loader, criterion, optim
         model.train()
         total_train, correct_train, train_loss = 0, 0, 0.0
 
-        pbar = tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/{num_epochs}")
+        pbar = tqdm(train_loader, desc=f"[Train] Epoch {epoch + 1}/{num_epochs}")
         for x, y, lengths in pbar:
             x, y = x.to(device), y.to(device)
             optimizer.zero_grad()
@@ -100,23 +104,49 @@ def evaluate_model(model, model_name, train_loader, val_loader, criterion, optim
         logs['val_losses'].append(avg_val_loss)
         logs['val_accs'].append(val_acc)
 
-        print(f"[Epoch {epoch+1}] Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")
+        print(
+            f"[Epoch {epoch + 1}] Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f} | Val Loss: {avg_val_loss:.4f}")  # Added Val Loss print
 
-        # Save model if performance improves
+        # Check for improvement and update early stopping counter
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            epochs_no_improve = 0  # Reset counter
             torch.save(model.state_dict(), model_path)
-            print(f"  -> Best model saved to {model_path}")
-            # Save metadata
+            print(f"  -> Best model saved to {model_path} (Val Acc: {best_val_acc:.4f})")  # Added score to print
+
+            # Get dropout rate safely
+            dropout_rate = 0.0  # Default
+            if hasattr(model, 'dropout') and hasattr(model.dropout, 'p'):
+                dropout_rate = model.dropout.p
+            elif hasattr(model, 'dropout_rate'):
+                dropout_rate = model.dropout_rate
+
+            # Get bidirectional status safely
+            bidirectional_status = getattr(model, 'bidirectional', False)
+
+            model_info_data = {
+                'input_size': input_size_config,
+                'hidden_size': getattr(model, 'hidden_size', None),
+                'num_layers': getattr(model, 'num_layers', None),
+                'bidirectional': bidirectional_status,
+                'dropout': dropout_rate,
+                'model_name': model_name,
+                'architecture': model.__class__.__name__,
+                'label_to_index': label2idx,
+                'index_to_label': idx2label
+            }
+            model_info_data = {k: v for k, v in model_info_data.items() if v is not None}
+
             with open(info_path, 'w') as f:
-                json.dump({
-                    'input_size': model.gru.input_size,
-                    'hidden_size': model.hidden_size,
-                    'num_layers': model.num_layers,
-                    'bidirectional': model.bidirectional,
-                    'dropout': model.dropout.p,
-                    'label_to_index': label2idx,
-                    'index_to_label': idx2label
-                }, f, indent=4)
+                json.dump(model_info_data, f, indent=4)
+        else:
+            epochs_no_improve += 1  # Increment counter if no improvement
+
+        # --- ADDED --- Early stopping check
+        if epochs_no_improve >= early_stopping_patience:
+            print(
+                f"\nEarly stopping triggered after {epoch + 1} epochs ({early_stopping_patience} epochs without improvement).")
+            print(f"Best Validation Accuracy: {best_val_acc:.4f}")
+            break  # Exit the training loop
 
     return best_val_acc, logs
