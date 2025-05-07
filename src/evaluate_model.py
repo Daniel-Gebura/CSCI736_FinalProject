@@ -17,7 +17,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 from dataloader import load_landmark_data_from_zip, SignLandmarkDataset, collate_fn
-from model import SignGRUClassifierAttention
+from models.gru_classifier import SignGRUClassifierAttention
 
 # ---------------- Configuration ----------------
 

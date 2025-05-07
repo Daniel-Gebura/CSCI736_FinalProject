@@ -7,9 +7,7 @@
 # Reference implementation structure:
 # https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
 #
-# v2: Added input_size attribute for compatibility with saving metadata.
-#
-# Author: Gemini
+# Author: Sayantan Saha
 ################################################################
 
 import torch

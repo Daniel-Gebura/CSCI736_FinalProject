@@ -5,9 +5,7 @@
 # Uses positional encoding and classifies based on the output
 # of the first time step after passing through the encoder.
 #
-# v2: Added fix for device mismatch on lengths tensor and added input_size attribute.
-#
-# Author: Gemini
+# Author: Sayantan Saha
 ################################################################
 
 import torch
