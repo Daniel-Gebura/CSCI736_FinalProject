@@ -31,7 +31,6 @@ def set_seed(seed):
     print(f"[Seed] Random seed set to {seed}")
 
 
-# --- MODIFIED --- Added early_stopping_patience argument
 def evaluate_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs, device,
                    save_dir, label2idx, idx2label, input_size_config, early_stopping_patience):
     """
@@ -57,7 +56,7 @@ def evaluate_model(model, model_name, train_loader, val_loader, criterion, optim
         dict: Logs of training losses/accuracies per epoch.
     """
     best_val_acc = 0.0
-    epochs_no_improve = 0  # --- ADDED --- Counter for early stopping
+    epochs_no_improve = 0  # Counter for early stopping
     logs = {'train_losses': [], 'val_losses': [], 'train_accs': [], 'val_accs': []}
 
     model_path = os.path.join(save_dir, f"{model_name}_best.pth")
@@ -108,7 +107,7 @@ def evaluate_model(model, model_name, train_loader, val_loader, criterion, optim
         print(
             f"[Epoch {epoch + 1}] Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f} | Val Loss: {avg_val_loss:.4f}")  # Added Val Loss print
 
-        # --- MODIFIED --- Check for improvement and update early stopping counter
+        # Check for improvement and update early stopping counter
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             epochs_no_improve = 0  # Reset counter
@@ -143,20 +142,11 @@ def evaluate_model(model, model_name, train_loader, val_loader, criterion, optim
         else:
             epochs_no_improve += 1  # Increment counter if no improvement
 
-        # --- ADDED --- Early stopping check
+        # Early stopping check
         if epochs_no_improve >= early_stopping_patience:
             print(
                 f"\nEarly stopping triggered after {epoch + 1} epochs ({early_stopping_patience} epochs without improvement).")
             print(f"Best Validation Accuracy: {best_val_acc:.4f}")
             break  # Exit the training loop
-
-    # --- Optional: If you want to ensure the returned model state is the best one ---
-    # This might be useful if other parts of your code use the model object after training
-    # try:
-    #     print(f"Loading best model weights from {model_path} before returning.")
-    #     model.load_state_dict(torch.load(model_path, map_location=device))
-    # except Exception as e:
-    #     print(f"Warning: Could not load best model weights after training: {e}")
-    # -----------------------------------------------------------------------------
 
     return best_val_acc, logs

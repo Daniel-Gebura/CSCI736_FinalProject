@@ -7,11 +7,7 @@
 #              them, feeds them to the trained Transformer model,
 #              and displays the predicted sign.
 #
-# Usage: Run from the 'CSCI736_FinalProject/ablation/' directory.
-#        Ensure 'models/transformer_classifier.py' and
-#        'dataloader.py' exist and required packages are installed.
-#
-# Adapted from: GRU demo script
+# Author: Sayantan Saha
 ################################################################
 
 import cv2
@@ -185,7 +181,7 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.6)  # Adjust as needed
 
 # --- Initialize OpenCV Video Capture ---
-cap = cv2.VideoCapture(1)  # Use 0 for default webcam
+cap = cv2.VideoCapture(0)  # Use 0 for default webcam
 if not cap.isOpened():
     print("Error: Could not open webcam.")
     exit()

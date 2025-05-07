@@ -1,112 +1,152 @@
-# Gesture Recognition with GRU and Transformer Architectures
+# Real-Time ASL Gesture Classification
 
-This repository contains a gesture classification pipeline built using PyTorch. It supports training and evaluation of deep learning models on sequence data derived from hand landmarks, with a focus on real-time American Sign Language (ASL) word recognition.
-
-Supported models:
-- GRU-based classifier with attention
-- Transformer encoder-based classifier
+This repository provides a modular, end-to-end deep learning pipeline for classifying American Sign Language (ASL) word gestures using hand landmarks. It supports training GRU and Transformer architectures and includes tools for downloading MS-ASL video clips, extracting MediaPipe landmarks, verifying preprocessing, and running live demos.
 
 ---
 
-## Directory Structure
+## Setup & Dependencies
+
+1. **Create a virtual environment** (recommended):
+   ```bash
+   python -m venv .env
+   source .env/bin/activate  # or .env\Scripts\activate on Windows
+    ```
+
+2. **Install required packages**:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
+
+## Project Directory Structure
 
 ```
-
 .
-├── config.py                   # Configuration for training
-├── train.py                   # Unified training script
-├── dataloader.py              # Loads and processes hand landmark sequences
-├── models/
-│   ├── gru\_classifier.py      # GRU-based classifier with attention
-│   └── transformer\_classifier.py  # Transformer-based sequence classifier
-├── utils/
-│   ├── metrics.py             # Evaluation loop and accuracy tracking
-│   ├── visualization.py       # Training curve plotting
+├── ablation/                      # Scripts and data related to ablation experiments
 ├── data/
-│   └── landmarks.zip          # Zipped folder of processed landmark sequences
-├── experiments/
-│   └── saved\_models/          # Saved model checkpoints
-│   └── training\_curves\_\*.png  # Training/validation accuracy and loss plots
-
+│   └── landmarks.zip              # Final compressed dataset used for training
+├── msasl/                         # Source folder for downloaded MS-ASL clips and metadata
+├── results/                       # Saved training plots and confusion matrices
+├── saved_models/                  # Best model checkpoints for each classifier
+├── scripts/                       # Data utilities and preprocessing tools
+│   ├── download_asl100_clips.py   # Download and clip MS-ASL100 videos
+│   ├── extract_landmarks.py       # Batch extract landmarks from videos
+│   ├── extract_landmarks_DEMO.py  # Landmark visualizer for a single video
+│   ├── verify_landmarks.py        # Visual overlay to verify .npy landmark files
+│   └── dataset_analysis.py        # Prints class distribution and stats
+├── src/
+│   ├── models/                    # GRU and Transformer model definitions
+│   ├── utils/                     # Metrics, visualization, helpers
+│   ├── config.py                  # Central config for training hyperparameters
+│   ├── dataloader.py              # Loads zipped landmark datasets
+│   ├── evaluate_model.py          # Generates confusion matrices for best GRU model
+│   ├── train.py                   # Main training script
+│   └── transformer_demo.py        # Real-time webcam demo
 ```
 
 ---
 
-## Optional: Downloading the MS-ASL Dataset
+## Step 1: (Optional) Download MS-ASL Videos and Extract Landmarks
 
-> ⚠️ **Note**: Downloading MS-ASL is not required if you are working with preprocessed landmark data. This step is only for advanced users who want to process raw videos themselves.
+> We recommend skipping this section if you already have `landmarks.zip` (provided in the GitHub repository) and don't want to generate your own dataset.
 
-To download the [MS-ASL dataset](https://github.com/ycjing/ASL-Dataset), follow the instructions in their GitHub repository. Be aware that the full dataset is large (~150 GB) and contains raw video data that will need preprocessing to extract landmarks.
-
----
-
-## Setting Up the Landmark Dataset
-
-Before training, ensure you have a processed dataset of hand landmarks. This should be a `.zip` file containing `.npy` files for each sample.
-
-1. Place your dataset at:
-```
-
-data/landmarks.zip
-
-````
-2. Inside the zip file, each file should be a NumPy array of shape `(sequence_length, 132)`, where 132 = 63 keypoints (left) + 63 (right) + 3 (face) + 3 (pose).
-
-3. The path to this file should be reflected in `config.py`:
-```python
-'zip_path': './data/landmarks.zip',
-'landmarks_folder': 'landmarks/'
-````
-
----
-
-## Training the Model
-
-To train both the GRU and Transformer classifiers:
+To download and clip ASL100 videos:
 
 ```bash
+python scripts/download_asl100_clips.py
+```
+
+This will:
+
+* Download MS-ASL metadata and videos
+* Clip relevant segments
+* Save them to `msasl/asl100_clips/`
+* Generate `asl100_labels.csv`
+
+
+To extract MediaPipe landmarks from downloaded clips:
+
+```bash
+python scripts/extract_landmarks.py
+```
+
+This will:
+
+* Process videos in `msasl/asl100_clips/`
+* Output `.npy` files to `data/landmarks/`
+* You can then zip the folder to produce `landmarks.zip`
+
+For a quick visual test on one video:
+
+```bash
+python scripts/extract_landmarks_DEMO.py
+```
+
+To verify the quality of extracted `.npy` files:
+
+```bash
+python scripts/verify_landmarks.py
+```
+
+---
+
+## Step 2: Train a Classifier
+
+Train the GRU classifier using:
+
+```bash
+cd src
 python train.py
 ```
 
-This script will:
+This script:
 
-* Set a global seed for reproducibility
-* Load the dataset from the zip file
-* Train each model architecture
-* Save the best checkpoint for each model in `experiments/saved_models/`
-* Save training curves in `experiments/training_curves_<model_name>.png`
-
----
-
-## Running the Live Demo
-
-> ⚠️ **Note**: This section will be updated once the live demo script is finalized.
-
-To run a real-time gesture recognition demo using your webcam:
-
-```bash
-python demo.py
-```
-
-Make sure the following are in place:
-
-* The trained model weights are located in `experiments/saved_models/`
-* Your demo script references the correct model class and preprocessing pipeline
+* Loads zipped hand landmark sequences from `data/landmarks.zip`
+* Trains the model using defined architecture config
+* Tracks validation accuracy and early stopping
+* Saves best checkpoints to `saved_models/`
+* Plots training loss/accuracy curves in `src/`
 
 ---
 
-## Requirements
+## Step 3: Evaluate a Trained Classifier
 
-* Python 3.8+
-* PyTorch 1.10+
-* NumPy
-* OpenCV (for live demo)
-* scikit-learn
-* tqdm
-* matplotlib
-
-Install all dependencies:
+Once training is complete, you can evaluate any saved model by running:
 
 ```bash
-pip install -r requirements.txt
+cd src
+python evaluate_model.py
 ```
+
+This script:
+
+* Loads the best saved model from `saved_models/`
+* Runs evaluation on the validation set
+* Computes a **confusion matrix**
+* Saves the matrix plot to `src/` and prints confusion statistics
+
+> **Note**: Pretrained model confusion matrices for both the GRU and Transformer classifiers are included in `results/` for reference.
+
+---
+
+## Step 4: Run the Real-Time Demo
+
+To try out real-time gesture recognition using your webcam, run:
+
+```bash
+python src/transformer_demo.py
+```
+
+This demo script:
+
+* Loads the best Transformer model from `saved_models/transformer_best.pth`
+* Reads model architecture and label mappings from `transformer_info.json`
+* Captures video frames from your webcam
+* Detects up to 2 hands and extracts 132 landmark features per frame
+* Buffers a sequence of 48 frames and performs a prediction when full
+* Displays the predicted ASL word and confidence on screen
+* Supports clearing the prediction buffer (`press 'c'`) or quitting (`press 'q'`)
+
+> Tip: Ensure your webcam is active and `MediaPipe`, `torch`, and `OpenCV` are correctly installed.

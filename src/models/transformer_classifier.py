@@ -69,7 +69,6 @@ class SignTransformerClassifier(nn.Module):
 
 
         self.d_model = hidden_size
-        # --- ADDED --- Store input_size for compatibility with saving metadata
         self.input_size = input_size
         self.hidden_size = hidden_size # Store for metadata saving
         self.num_layers = num_layers # Store for metadata saving
